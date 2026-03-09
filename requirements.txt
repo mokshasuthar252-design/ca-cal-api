@@ -1,7 +1,11 @@
-Django==5.1.4
+asgiref==3.11.1
+charset-normalizer==3.4.5
+Django==6.0.2
 djangorestframework==3.16.1
+dnspython==2.8.0
+pillow==12.1.1
 pymongo==4.16.0
-channels==4.3.2
-daphne==4.2.1
-gunicorn
-whitenoise
+reportlab==4.4.10
+sqlparse==0.5.5
+tzdata==2025.3
+whitenoise==6.12.0
