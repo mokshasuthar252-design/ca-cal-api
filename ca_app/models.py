@@ -242,3 +242,43 @@ class ELECTRICITYBILL_Calculator(models.Model):
     total_cost = models.DecimalField(max_digits=15, decimal_places=2)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+
+
+
+class BANKING_EMI_Calculator(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    calculator_type = models.CharField(max_length=100)
+
+    loan_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
+    time_period_years = models.IntegerField()
+
+    emi = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    principal_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    total_interest = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"EMI Calculator - {self.loan_amount}"
+
+
+
+class Insurance_EMI_Calculator(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    calculator_type = models.CharField(max_length=100)
+    insurance_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
+    time_period_years = models.IntegerField()
+
+    emi = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    principal_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    total_interest = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)

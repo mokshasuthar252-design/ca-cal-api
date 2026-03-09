@@ -15,6 +15,8 @@ from .views import (
     CalculatorHistoryAPI,
     DownloadHistoryPDF,
     ShareHistoryAPI,
+    BANKINGEMICalculateAPI,
+    InsuranceEMICalculateAPI,
     delete_account,
     register,
     send_login_otp,
@@ -46,6 +48,7 @@ urlpatterns = [
 
    
     path('emi/calculate/', EMICalculateAPI.as_view()),
+    path('BANKING/emi/calculate/', BANKINGEMICalculateAPI.as_view()),
 
    
     path('banking-swp/calculate/', BankingSWPCalculateAPI.as_view()),
@@ -60,5 +63,6 @@ urlpatterns = [
     path("calculator-history/", CalculatorHistoryAPI.as_view(), name="calculator_history"),
     path("history/download/<str:history_id>/", DownloadHistoryPDF.as_view(), name='history-download'),
     path("history/share/<str:history_id>/", ShareHistoryAPI.as_view(), name='history-share'),
+    path("insurance-emi/", InsuranceEMICalculateAPI.as_view(), name="insurance-emi")
   
 ]

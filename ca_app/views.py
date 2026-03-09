@@ -41,13 +41,13 @@ from .models import (
     CA_GST_Calculator, CA_TDS_Calculator, CA_EMI_Calculator,
     BankingSWPCalculator, BANKING_SIP_Calculator,
     BANKING_FD_Calculator, BANKING_PPF_Calculator, BANKING_RD_Calculator,
-    BANKING_MATURITY_Calculator,LANDUNIT_Calculator,PAINTCOST_Calculator,ELECTRICITYBILL_Calculator
+    BANKING_MATURITY_Calculator,LANDUNIT_Calculator,PAINTCOST_Calculator,ELECTRICITYBILL_Calculator,BANKING_EMI_Calculator,Insurance_EMI_Calculator,
 )
 
 from .utils import (
     generate_otp, calculate_gst, calculate_tds,
     calculate_emi_logic, calculate_banking_swp,
-    calculate_sip, calculate_fd, calculate_ppf,calculate_maturity,calculate_land_unit,calculate_paint_cost, calculate_electricity_bill
+    calculate_sip, calculate_fd, calculate_ppf,calculate_maturity,calculate_land_unit,calculate_paint_cost, calculate_electricity_bill, calculate_insurance_emi_logic
 )
 
 from .mongo import history_collection
@@ -924,7 +924,74 @@ class RDCalculateAPI(APIView):
             "estimated_return": round(profit, 2),
             "total_amount": round(maturity, 2)
         }, status=201)
+    
+    # __________________________________________________________________________________________________________________________________________________________________________________________
+class BANKINGEMICalculateAPI(APIView):
 
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        profile = get_mongo_profile(request)
+
+        if not profile:
+            return Response({"error": "User profile not found"}, status=404)
+
+        data = request.data
+
+        try:
+            principal = float(data.get("loan_amount", 0))
+            rate = float(data.get("interest_rate", 0))
+            years = int(data.get("time_in_years", 0))
+
+        except ValueError:
+            return Response({"error": "Invalid input"}, status=400)
+
+        result = calculate_emi_logic(principal, rate, years)
+
+        if not result:
+            return Response({"error": "Calculation failed"}, status=400)
+
+        # Save in Django DB
+        obj = BANKING_EMI_Calculator.objects.create(
+            user=request.user,
+            calculator_type="EMI",
+            loan_amount=principal,
+            interest_rate=rate,
+            time_period_years=years,
+            emi=result["monthly_emi"],
+            principal_amount=result["principal_amount"],
+            total_interest=result["total_interest"],
+            total_amount=result["total_amount"],
+        )
+
+        # Save in MongoDB History
+        history_collection.insert_one({
+
+            "custom_id": profile["custom_id"],
+            "user_id": request.user.id,
+
+            "calculator_name": "BANKING EMI Calculator",
+
+            "loan_amount": principal,
+            "interest_rate": rate,
+            "time_period_years": years,
+
+            "monthly_emi": result["monthly_emi"],
+            "principal_amount": result["principal_amount"],
+            "total_interest": result["total_interest"],
+            "total_amount": result["total_amount"],
+
+            "created_at": localtime(obj.created_at).isoformat()
+
+        })
+
+        return Response({
+
+            "message": "EMI calculated & saved successfully",
+            "data": result
+
+        }, status=201)
 # _________________________________________________________________INSURANCE________________________________________________________________________________________________________________________________________________________-
 
 # ______________________________________________________________MATURITY CALC__________________________________________________________________________________
@@ -1302,3 +1369,54 @@ Date       : {record.get('created_at')}
 
 
 
+class InsuranceEMICalculateAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        profile = get_mongo_profile(request)
+        if not profile:
+            return Response({"error": "User profile not found"}, status=404)
+
+        data = request.data
+
+        try:
+            insurance_amount = float(data.get("insurance_amount", 0))
+            rate = float(data.get("interest_rate", 0))
+            years = int(data.get("time_in_years", 0))
+        except ValueError:
+            return Response({"error": "Invalid input"}, status=400)
+
+        result = calculate_insurance_emi_logic(insurance_amount, rate, years)
+
+        if not result:
+            return Response({"error": "Calculation failed"}, status=400)
+
+        obj = Insurance_EMI_Calculator.objects.create(
+            calculator_type="Insurance EMI",
+            insurance_amount=insurance_amount,
+            interest_rate=rate,
+            time_period_years=years,
+            emi=result["monthly_emi"],
+            principal_amount=result["principal_amount"],
+            total_interest=result["total_interest"],
+            total_amount=result["total_amount"],
+        )
+
+        history_collection.insert_one({
+            "custom_id": profile["custom_id"],
+            "calculator_name": "Insurance EMI Calculator",
+            "insurance_amount": insurance_amount,
+            "interest_rate": rate,
+            "time_period_years": years,
+            "monthly_emi": result["monthly_emi"],
+            "principal_amount": result["principal_amount"],
+            "total_interest": result["total_interest"],
+            "total_amount": result["total_amount"],
+            "created_at": localtime(obj.created_at).isoformat()
+        })
+
+        return Response({
+            "message": "Insurance EMI calculated & saved successfully",
+            "result": result
+        }, status=201)

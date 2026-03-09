@@ -383,3 +383,48 @@ def calculate_electricity_bill(power, power_unit, price, time, time_unit):
         "power_consumed": round(energy_consumed, 2),
         "total_cost": round(total_cost, 2)
     }
+
+
+
+
+import math
+
+def calculate_emi_logic(principal, rate, years):
+
+    monthly_rate = rate / (12 * 100)
+    months = years * 12
+
+    emi = principal * monthly_rate * pow(1 + monthly_rate, months) / (pow(1 + monthly_rate, months) - 1)
+
+    total_amount = emi * months
+    total_interest = total_amount - principal
+
+    return {
+        "monthly_emi": round(emi, 2),
+        "principal_amount": round(principal, 2),
+        "total_interest": round(total_interest, 2),
+        "total_amount": round(total_amount, 2)
+    }
+
+
+
+def calculate_insurance_emi_logic(insurance_amount, interest_rate, time_in_years):
+
+    if insurance_amount <= 0 or interest_rate <= 0 or time_in_years <= 0:
+        return None
+
+    monthly_rate = interest_rate / 12 / 100
+    months = time_in_years * 12
+
+    emi = (insurance_amount * monthly_rate * math.pow(1 + monthly_rate, months)) / \
+          (math.pow(1 + monthly_rate, months) - 1)
+
+    total_payment = emi * months
+    interest = total_payment - insurance_amount
+
+    return {
+        "monthly_emi": round(emi, 2),
+        "principal_amount": round(insurance_amount, 2),
+        "total_interest": round(interest, 2),
+        "total_amount": round(total_payment, 2),
+    }
