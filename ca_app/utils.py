@@ -5,6 +5,7 @@ from datetime import datetime
 import random
 
 
+
 def generate_custom_id(name, user_collection):
     last_user = user_collection.find_one({}, sort=[("serial", -1)])
 
@@ -158,59 +159,59 @@ def calculate_banking_swp(invested_amount, monthly_withdrawal, interest_rate, ti
         "invested_amount": round(invested_amount, 2),
         "monthly_withdrawal": round(monthly_withdrawal, 2),
         "total_withdrawn": round(total_withdrawn, 2),
-        "final_amount": round(balance, 2),
+        "total_amount": round(balance, 2),
     }
 
 
 
 
-def calculate_fd(principal, annual_rate, years):
-    if principal <= 0 or annual_rate <= 0 or years <= 0:
+def calculate_fd(invested_amount, interest_rate, time_period_years):
+
+    if invested_amount <= 0 or interest_rate <= 0 or time_period_years <= 0:
         return None
 
-    n = 4  
-    rate = annual_rate / 100
+    rate = interest_rate / 100
 
-    maturity_amount = principal * math.pow((1 + rate / n), n * years)
-    returns = maturity_amount - principal
+    maturity_amount = invested_amount * (1 + rate) ** time_period_years
+    interest_earned = maturity_amount - invested_amount
 
     return {
-        "invested_amount": round(principal, 2),
-        "estimated_return": round(returns, 2),
-        "total_amount": round(maturity_amount, 2),
+        "invested_amount": round(invested_amount,2),
+        "estimated_return": round(interest_earned,2),
+        "total_amount": round(maturity_amount,2)
     }
 
 
 
-import math
 
 
-def calculate_ppf(investment, annual_rate, years, frequency):
 
-    if investment <= 0 or annual_rate <= 0 or years <= 0:
+def calculate_ppf(total_investment, return_rate, time_in_years, frequency):
+
+    if total_investment <= 0 or return_rate <= 0 or time_in_years <= 0:
         return None
 
-    r = annual_rate / 100
+    r = return_rate / 100
 
     # Frequency based yearly conversion
     if frequency == "Monthly":
-        yearly_investment = investment * 12
+        yearly_investment = total_investment * 12
 
     elif frequency == "Quarterly":
-        yearly_investment = investment * 4
+        yearly_investment = total_investment * 4
 
     elif frequency == "Half-yearly":
-        yearly_investment = investment * 2
+        yearly_investment = total_investment * 2
 
     else:  # Yearly
-        yearly_investment = investment
+        yearly_investment = total_investment
 
     # PPF formula (Annuity Due)
     maturity_amount = yearly_investment * (
-        (math.pow(1 + r, years) - 1) / r
+        (math.pow(1 + r, time_in_years) - 1) / r
     ) * (1 + r)
 
-    total_invested = yearly_investment * years
+    total_invested = yearly_investment * time_in_years
     estimated_return = maturity_amount - total_invested
 
     return {
@@ -220,64 +221,52 @@ def calculate_ppf(investment, annual_rate, years, frequency):
         "total_amount": round(maturity_amount, 2),
     }
 
+# _______________________________________________________________________________________________________________________________________________________________________-
 
 
+def calculate_rd(monthly_investment, interest_rate, time_period_years):
 
-def calculate_rd(monthly_amount, annual_rate, years):
-    if monthly_amount <= 0 or annual_rate <= 0 or years <= 0:
+    if monthly_investment <= 0 or interest_rate <= 0 or time_period_years <= 0:
         return None
 
-    months = int(years * 12)
-    
-    r = annual_rate / 100
+    months = int(time_period_years * 12)
+    r = interest_rate / 100
 
-    # RD formula (Quarterly compounding)
-    maturity_amount = monthly_amount * (
+    maturity_amount = monthly_investment * (
         (math.pow(1 + r / 4, months / 3) - 1) /
         (1 - math.pow(1 + r / 4, -1 / 3))
     )
 
-    invested_amount = monthly_amount * months
-    estimated_return = maturity_amount - invested_amount
-
-    # 🔥 SAME AS SIP HISTORY STRUCTURE
-    history = {
-        "calculator_name": "RD",
-        "investment_type": "Recurring Deposit",
-        "inputs": {
-            "monthly_amount": monthly_amount,
-            "interest_rate": annual_rate,
-            "time_period_years": years
-        },
-        "results": {
-            "invested_amount": round(invested_amount, 2),
-            "estimated_return": round(estimated_return, 2),
-            "total_amount": round(maturity_amount, 2)
-        },
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-
-    return history
-
-
-
-
-def calculate_maturity(invested_amount, annual_rate, years):
-    if invested_amount <= 0 or annual_rate < 0 or years <= 0:
-        return None
-
-    r = annual_rate / 100
-
-    maturity_amount = invested_amount * math.pow((1 + r), years)
+    invested_amount = monthly_investment * months
     estimated_return = maturity_amount - invested_amount
 
     return {
         "invested_amount": round(invested_amount, 2),
-        "annual_rate": round(annual_rate, 2),
-        "time_period_years": years,
         "estimated_return": round(estimated_return, 2),
-        "total_amount": round(maturity_amount, 2),
+        "total_amount": round(maturity_amount, 2)
     }
+
+
+def calculate_maturity(total_investment, rate_of_interest, time_period_years):
+
+    if total_investment <= 0 or rate_of_interest <= 0 or time_period_years <= 0:
+        return None
+
+    r = rate_of_interest / 100
+
+    maturity_amount = total_investment * math.pow((1 + r), time_period_years)
+    estimated_return = maturity_amount - total_investment
+
+    return {
+        "total_invested": round(total_investment, 2),
+        "estimated_return": round(estimated_return, 2),
+        "total_amount": round(maturity_amount, 2)
+    }
+
+
+
+
+
 
 
 

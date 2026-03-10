@@ -114,7 +114,7 @@ class BankingSWPCalculator(models.Model):
     time_period_years = models.PositiveIntegerField()
 
     total_withdrawn = models.DecimalField(max_digits=14, decimal_places=2)
-    final_amount = models.DecimalField(max_digits=14, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -138,9 +138,9 @@ class BANKING_PPF_Calculator(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
-    investment = models.DecimalField(max_digits=14, decimal_places=2)
-    annual_rate = models.DecimalField(max_digits=5, decimal_places=2)
-    time_period_years = models.PositiveIntegerField()
+    total_investment = models.DecimalField(max_digits=14, decimal_places=2)
+    return_rate  = models.DecimalField(max_digits=5, decimal_places=2)
+    time_in_years = models.PositiveIntegerField()
 
     frequency = models.CharField(max_length=20)
 
@@ -157,7 +157,7 @@ class BANKING_PPF_Calculator(models.Model):
 class BANKING_RD_Calculator(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
-    monthly_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    monthly_investment  = models.DecimalField(max_digits=12, decimal_places=2)
     interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
     time_period_years = models.PositiveIntegerField()
 
@@ -169,11 +169,11 @@ class BANKING_RD_Calculator(models.Model):
 
 
 
-class BANKING_MATURITY_Calculator(models.Model):
+class INSURANCE_MATURITY_Calculator(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
-    invested_amount = models.DecimalField(max_digits=14, decimal_places=2)
-    annual_rate = models.DecimalField(max_digits=5, decimal_places=2)
+    total_investment = models.DecimalField(max_digits=14, decimal_places=2)
+    rate_of_interest = models.DecimalField(max_digits=5, decimal_places=2)
     time_period_years = models.PositiveIntegerField()
 
     estimated_return = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)

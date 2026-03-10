@@ -41,13 +41,13 @@ from .models import (
     CA_GST_Calculator, CA_TDS_Calculator, CA_EMI_Calculator,
     BankingSWPCalculator, BANKING_SIP_Calculator,
     BANKING_FD_Calculator, BANKING_PPF_Calculator, BANKING_RD_Calculator,
-    BANKING_MATURITY_Calculator,LANDUNIT_Calculator,PAINTCOST_Calculator,ELECTRICITYBILL_Calculator,BANKING_EMI_Calculator,Insurance_EMI_Calculator,
+    INSURANCE_MATURITY_Calculator,LANDUNIT_Calculator,PAINTCOST_Calculator,ELECTRICITYBILL_Calculator,BANKING_EMI_Calculator,Insurance_EMI_Calculator,
 )
 
 from .utils import (
     generate_otp, calculate_gst, calculate_tds,
     calculate_emi_logic, calculate_banking_swp,
-    calculate_sip, calculate_fd, calculate_ppf,calculate_maturity,calculate_land_unit,calculate_paint_cost, calculate_electricity_bill, calculate_insurance_emi_logic
+    calculate_sip, calculate_fd, calculate_ppf,calculate_maturity,calculate_land_unit,calculate_paint_cost, calculate_electricity_bill, calculate_insurance_emi_logic,calculate_rd,
 )
 
 from .mongo import history_collection
@@ -420,7 +420,7 @@ class GSTCalculateAPI(APIView):
 
         history_collection.insert_one({
             "custom_id": profile["custom_id"],
-            "calculator_name": "CA GST Calculator",
+            "calculator_name": "CA \nGST Calculator",
             "amount": float(data.get("amount")),
             "gst_rate": float(data.get("gst_rate")),
             "calculation_type": data.get("calculation_type"),
@@ -511,7 +511,7 @@ class TDSCalculateAPI(APIView):
        
         history_collection.insert_one({
             "custom_id": profile["custom_id"],  
-            "calculator_name": "CA TDS Calculator",
+            "calculator_name": "CA \nTDS Calculator",
             "amount": amount,
             "tds_rate": tds_rate,
             "net_amount": result["net_amount"],
@@ -595,7 +595,7 @@ class EMICalculateAPI(APIView):
 
         history_collection.insert_one({
             "custom_id": profile["custom_id"],
-            "calculator_name": "CA EMI Calculator",
+            "calculator_name": "CA \nEMI Calculator",
             "loan_amount": principal,
             "interest_rate": rate,
             "time_period_years": years,
@@ -648,24 +648,24 @@ class BankingSWPCalculateAPI(APIView):
             interest_rate=interest_rate,
             time_period_years=years,
             total_withdrawn=result["total_withdrawn"],
-            final_amount=result["final_amount"],
+            total_amount=result["total_amount"],
         )
 
    
         history_collection.insert_one({
             "custom_id": profile["custom_id"],
-            "calculator_name": "SWP Calculator",
+            "calculator_name": "Banking \nSWP Calculator",
             "invested_amount": invested_amount,
             "monthly_withdrawal": monthly_withdrawal,
             "interest_rate": interest_rate,
             "time_period_years": years,
             "total_withdrawn": result["total_withdrawn"],
-            "final_amount": result["final_amount"],
+            "total_amount": result["total_amount"],
             "created_at": localtime(obj.created_at).isoformat()
         })
 
         return Response({
-            "message": "SWP calculated & saved successfully",
+            "message": "Banking SWP calculated & saved successfully",
             "custom_id": profile["custom_id"],
             "result": result
         }, status=201)
@@ -685,39 +685,39 @@ class FDCalculateAPI(APIView):
 
         data = request.data
         try:
-            principal = float(data.get("invested_amount", 0))
-            rate = float(data.get("annual_rate", 0))
-            years = float(data.get("time_period_years", 0))
+            invested_amount = float(data.get("invested_amount", 0))
+            interest_rate = float(data.get("interest_rate", 0))
+            time_period_years = float(data.get("time_period_years", 0))
         except ValueError:
             return Response({"error": "Invalid input"}, status=400)
 
        
-        result = calculate_fd(principal, rate, years)
+        result = calculate_fd(invested_amount, interest_rate, time_period_years)
         if not result:
             return Response({"error": "Calculation failed"}, status=400)
 
    
         obj = BANKING_FD_Calculator.objects.create(
-            invested_amount=principal,
-            annual_rate=rate,
-            time_period_years=years,
+            invested_amount=invested_amount,
+            annual_rate=interest_rate,
+            time_period_years=time_period_years,
             estimated_return=result["estimated_return"],
             total_amount=result["total_amount"],
         )
 
         history_collection.insert_one({
             "custom_id": profile["custom_id"],
-            "calculator_name": "FD Calculator",
-            "invested_amount": principal,
-            "annual_rate": rate,
-            "time_period_years": years,
+            "calculator_name": "Bankig \nFD Calculator",
+            "invested_amount": invested_amount,
+            "annual_rate": interest_rate,
+            "time_period_years": time_period_years,
             "estimated_return": result["estimated_return"],
             "total_amount": result["total_amount"],
             "created_at": localtime(obj.created_at).isoformat()
         })
 
         return Response({
-            "message": "FD calculated & saved successfully",
+            "message": "Banking FD calculated & saved successfully",
             "custom_id": profile["custom_id"],
             "result": result
         }, status=201)
@@ -744,10 +744,10 @@ class PPFCalculateAPI(APIView):
         data = request.data
 
         try:
-            investment = float(data.get("investment"))
-            annual_rate = float(data.get("annual_rate"))
-            years = int(data.get("time_period_years"))
-            frequency = data.get("frequency")
+            total_investment = float(data.get("total_investment"))
+            return_rate = float(data.get("return_rate"))
+            time_in_years = int(data.get("time_in_years"))
+            frequency = data.get("frequency").capitalize()
 
         except (TypeError, ValueError):
             return Response({
@@ -762,7 +762,7 @@ class PPFCalculateAPI(APIView):
             }, status=400)
 
         # 🔥 Calculate PPF
-        result = calculate_ppf(investment, annual_rate, years, frequency)
+        result = calculate_ppf(total_investment, return_rate, time_in_years, frequency)
 
         if not result:
             return Response({
@@ -773,9 +773,9 @@ class PPFCalculateAPI(APIView):
         # 🔥 Save in SQL DB
         obj = BANKING_PPF_Calculator.objects.create(
             user=request.user,
-            investment=investment,
-            annual_rate=annual_rate,
-            time_period_years=years,
+            total_investment=total_investment,
+            return_rate=return_rate,
+            time_in_years=time_in_years,
             frequency=frequency,
             total_invested=result["total_invested"],
             estimated_return=result["estimated_return"],
@@ -786,11 +786,11 @@ class PPFCalculateAPI(APIView):
         history_collection.insert_one({
 
             "custom_id": profile["custom_id"],
-            "calculator_name": "PPF Calculator",
+            "calculator_name": "Banking \nPPF Calculator",
 
-            "investment": investment,
-            "annual_rate": annual_rate,
-            "time_period_years": years,
+            "total_investment": total_investment,
+            "return_rate": return_rate,
+            "time_in_years": time_in_years,
             "frequency": frequency,
 
             "total_invested": result["total_invested"],
@@ -803,12 +803,12 @@ class PPFCalculateAPI(APIView):
         return Response({
 
             "status": True,
-            "message": "PPF calculated successfully",
+            "message": "Bankig PPF calculated successfully",
 
             "data": {
-                "investment": investment,
-                "annual_rate": annual_rate,
-                "time_period_years": years,
+                "total_investment": total_investment,
+                "return_rate": return_rate,
+                "time_in_years": time_in_years,
                 "frequency": frequency,
 
                 "total_invested": result["total_invested"],
@@ -848,7 +848,7 @@ class SIPCalculateAPI(APIView):
         # Save in MongoDB history
         history_collection.insert_one({
             "custom_id": profile["custom_id"],
-            "calculator_name": "SIP Calculator",
+            "calculator_name": "Banking \nSIP Calculator",
             "monthly_investment": round(monthly, 2),
             "annual_rate": round(rate, 2),
             "time_period_years": years,
@@ -859,7 +859,7 @@ class SIPCalculateAPI(APIView):
         })
 
         return Response({
-            "message": "SIP calculated & saved successfully",
+            "message": "Banking SIP calculated & saved successfully",
             "result": result
         }, status=201)
     
@@ -873,56 +873,50 @@ class RDCalculateAPI(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        profile = get_mongo_profile(request)  
+
+        profile = get_mongo_profile(request)
+        if not profile:
+            return Response({"error": "User profile not found"}, status=404)
+
         data = request.data
 
-        monthly = float(data.get("monthly_amount", 0))
-        rate = float(data.get("interest_rate", 0))
-        years = float(data.get("time_period_years", 0))
-
-        if monthly <= 0 or rate <= 0 or years <= 0:
+        try:
+            monthly_investment = float(data.get("monthly_investment", 0))
+            interest_rate = float(data.get("interest_rate", 0))
+            time_period_years = float(data.get("time_period_years", 0))
+        except ValueError:
             return Response({"error": "Invalid input"}, status=400)
 
-        months = int(years * 12)
-        r = rate / 100
+        result = calculate_rd(monthly_investment, interest_rate, time_period_years)
 
-        
-        maturity = monthly * (
-            (math.pow(1 + r / 4, months / 3) - 1) /
-            (1 - math.pow(1 + r / 4, -1 / 3))
-        )
+        if not result:
+            return Response({"error": "Calculation failed"}, status=400)
 
-        invested = monthly * months
-        profit = maturity - invested
-
-     
         obj = BANKING_RD_Calculator.objects.create(
-            monthly_amount=monthly,
-            interest_rate=rate,
-            time_period_years=years,
-            invested_amount=round(invested, 2),
-            estimated_return=round(profit, 2),
-            total_amount=round(maturity, 2),
+            user=request.user,
+            monthly_investment=monthly_investment,
+            interest_rate=interest_rate,
+            time_period_years=int(time_period_years),
+            invested_amount=result["invested_amount"],
+            estimated_return=result["estimated_return"],
+            total_amount=result["total_amount"],
         )
 
-        
         history_collection.insert_one({
             "custom_id": profile["custom_id"],
-            "calculator_name": "RD Calculator",
-            "monthly_amount": round(monthly, 2),
-            "interest_rate": round(rate, 2),
-            "time_period_years": years,
-            "invested_amount": round(invested, 2),
-            "estimated_return": round(profit, 2),
-            "total_amount": round(maturity, 2),
+            "calculator_name": "Banking \nRD Calculator",
+            "monthly_investment": monthly_investment,
+            "interest_rate": interest_rate,
+            "time_period_years": time_period_years,
+            "invested_amount": result["invested_amount"],
+            "estimated_return": result["estimated_return"],
+            "total_amount": result["total_amount"],
             "created_at": localtime(obj.created_at).isoformat()
         })
 
         return Response({
-            "message": "RD calculated & saved successfully",
-            "invested_amount": round(invested, 2),
-            "estimated_return": round(profit, 2),
-            "total_amount": round(maturity, 2)
+            "message": "Banking RD calculated & saved successfully",
+            "result": result
         }, status=201)
     
     # __________________________________________________________________________________________________________________________________________________________________________________________
@@ -971,7 +965,7 @@ class BANKINGEMICalculateAPI(APIView):
             "custom_id": profile["custom_id"],
             "user_id": request.user.id,
 
-            "calculator_name": "BANKING EMI Calculator",
+            "calculator_name": "BANKING \nEMI Calculator",
 
             "loan_amount": principal,
             "interest_rate": rate,
@@ -998,51 +992,63 @@ class BANKINGEMICalculateAPI(APIView):
 
 
 class MaturityCalculateAPI(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+
         profile = get_mongo_profile(request)
         if not profile:
             return Response({"error": "User profile not found"}, status=404)
 
         data = request.data
+
         try:
-            invested_amount = float(data.get("invested_amount", 0))
-            annual_rate = float(data.get("annual_rate", 0))
-            years = float(data.get("time_period_years", 0))
+            total_investment = float(data.get("total_investment", 0))
+            rate_of_interest = float(data.get("rate_of_interest", 0))
+            time_period_years = int(data.get("time_period_years", 0))
         except ValueError:
             return Response({"error": "Invalid input"}, status=400)
 
-        result = calculate_maturity(invested_amount, annual_rate, years)
+        result = calculate_maturity(
+            total_investment,
+            rate_of_interest,
+            time_period_years
+        )
+
         if not result:
             return Response({"error": "Calculation failed"}, status=400)
 
         # Save in SQL
-        obj = BANKING_MATURITY_Calculator.objects.create(
-            invested_amount=invested_amount,
-            annual_rate=annual_rate,
-            time_period_years=years,
+        obj = INSURANCE_MATURITY_Calculator.objects.create(
+            user=request.user,
+            total_investment=total_investment,
+            rate_of_interest=rate_of_interest,
+            time_period_years=time_period_years,
             estimated_return=result["estimated_return"],
             total_amount=result["total_amount"],
         )
 
-        # Save in MongoDB history
+        # Save MongoDB history
         history_collection.insert_one({
             "custom_id": profile["custom_id"],
-            "calculator_name": "Maturity Calculator",
-            "invested_amount": invested_amount,
-            "annual_rate": annual_rate,
-            "time_period_years": years,
+            "calculator_name": "Insurance Maturity Calculator",
+            "total_investment": total_investment,
+            "rate_of_interest": rate_of_interest,
+            "time_period_years": time_period_years,
+            "total_invested": result["total_invested"],
             "estimated_return": result["estimated_return"],
             "total_amount": result["total_amount"],
             "created_at": localtime(obj.created_at).isoformat()
         })
 
         return Response({
-            "message": "Maturity calculated & saved successfully",
+            "message": "Insurance Maturity calculated & saved successfully",
             "result": result
         }, status=201)
-    
+
+
+
 
 class LandUnitCalculateAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -1083,7 +1089,7 @@ class LandUnitCalculateAPI(APIView):
         history_collection.insert_one({
 
             "custom_id": profile["custom_id"],
-            "calculator_name": "Land Unit Calculator",
+            "calculator_name": "property & utility \nLand Unit Calculator",
 
             "land_area": land_area,
             "unit": unit,
@@ -1096,7 +1102,7 @@ class LandUnitCalculateAPI(APIView):
 
         return Response({
 
-            "message": "Land Unit calculated successfully",
+            "message": " property & utility Land Unit calculated successfully",
 
             "selected_unit_price": price_per_unit,
 
@@ -1161,7 +1167,7 @@ class PaintCostCalculateAPI(APIView):
         history_collection.insert_one({
 
             "custom_id": profile["custom_id"],
-            "calculator_name": "Paint Cost Calculator",
+            "calculator_name": " property & utility \nPaint Cost Calculator",
 
             "total_area": total_area,
             "area_unit": area_unit,
@@ -1178,7 +1184,7 @@ class PaintCostCalculateAPI(APIView):
         })
 
         return Response({
-            "message": "Paint cost calculated successfully",
+            "message": " property & utility Paint cost calculated successfully",
             "result": result
         }, status=201)
 
@@ -1238,7 +1244,7 @@ class ElectricityBillCalculateAPI(APIView):
         history_collection.insert_one({
 
             "custom_id": profile["custom_id"],
-            "calculator_name": "Electricity Bill Calculator",
+            "calculator_name": " property & utility \nElectricity Bill Calculator",
 
             "power_consumption": power,
             "power_unit": power_unit,
@@ -1255,7 +1261,7 @@ class ElectricityBillCalculateAPI(APIView):
         })
 
         return Response({
-            "message": "Electricity bill calculated successfully",
+            "message": " property & utility Electricity bill calculated successfully",
             "result": result
         }, status=201)
 
