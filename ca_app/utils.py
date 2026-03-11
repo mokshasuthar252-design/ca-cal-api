@@ -360,9 +360,6 @@ def calculate_paint_cost(total_area, area_unit, efficiency, cost_per_liter):
 
 def calculate_electricity_bill(power, power_unit, price, time, time_unit):
 
-    if power <= 0 or price <= 0 or time <= 0:
-        return None
-
     power_conversion = {
         "watts": 0.001,
         "kilowatts": 1,
@@ -377,18 +374,23 @@ def calculate_electricity_bill(power, power_unit, price, time, time_unit):
         "year": 8760
     }
 
-    power_kw = power * power_conversion.get(power_unit)
+    power_unit = power_unit.lower()
+    time_unit = time_unit.lower()
 
-    hours = time * time_conversion.get(time_unit)
+    power_kw = power * power_conversion.get(power_unit, 1)
+
+    hours = time * time_conversion.get(time_unit, 1)
 
     energy_consumed = power_kw * hours
 
-    total_cost = energy_consumed * price
+    total_amount = energy_consumed * price
 
     return {
         "power_consumed": round(energy_consumed, 2),
-        "total_cost": round(total_cost, 2)
+        "total_amount": round(total_amount, 2)
     }
+
+
 
 
 
@@ -434,3 +436,53 @@ def calculate_insurance_emi_logic(insurance_amount, interest_rate, time_in_years
         "total_interest": round(interest, 2),
         "total_amount": round(total_payment, 2),
     }
+
+
+
+
+
+
+import math
+
+def calculate_irr(cash_flows):
+
+    low = -0.9999
+    high = 10.0
+    mid = 0.0
+
+    def npv(rate):
+        total = 0.0
+        for t in range(len(cash_flows)):
+            total += cash_flows[t] / ((1 + rate) ** t)
+        return total
+
+    if npv(low) * npv(high) > 0:
+        return None
+
+    for _ in range(1000):
+
+        mid = (low + high) / 2
+        value = npv(mid)
+
+        if abs(value) < 0.00001:
+            return mid * 100
+
+        if npv(low) * value < 0:
+            high = mid
+        else:
+            low = mid
+
+    return mid * 100
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -41,13 +41,14 @@ from .models import (
     CA_GST_Calculator, CA_TDS_Calculator, CA_EMI_Calculator,
     BankingSWPCalculator, BANKING_SIP_Calculator,
     BANKING_FD_Calculator, BANKING_PPF_Calculator, BANKING_RD_Calculator,
-    INSURANCE_MATURITY_Calculator,LANDUNIT_Calculator,PAINTCOST_Calculator,ELECTRICITYBILL_Calculator,BANKING_EMI_Calculator,Insurance_EMI_Calculator,
+    INSURANCE_MATURITY_Calculator,LANDUNIT_Calculator,PAINTCOST_Calculator,ELECTRICITYBILL_Calculator,BANKING_EMI_Calculator,Insurance_EMI_Calculator,INSURANCE_IRR_Calculator
 )
 
 from .utils import (
     generate_otp, calculate_gst, calculate_tds,
     calculate_emi_logic, calculate_banking_swp,
-    calculate_sip, calculate_fd, calculate_ppf,calculate_maturity,calculate_land_unit,calculate_paint_cost, calculate_electricity_bill, calculate_insurance_emi_logic,calculate_rd,
+    calculate_sip, calculate_fd, calculate_ppf,calculate_maturity,
+    calculate_land_unit,calculate_paint_cost, calculate_electricity_bill, calculate_insurance_emi_logic,calculate_rd,calculate_irr,
 )
 
 from .mongo import history_collection
@@ -1181,6 +1182,8 @@ class PaintCostCalculateAPI(APIView):
 
 
 
+
+
 class ElectricityBillCalculateAPI(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -1203,7 +1206,7 @@ class ElectricityBillCalculateAPI(APIView):
             time = float(data.get("usage_time", 0))
             time_unit = data.get("time_unit")
 
-        except ValueError:
+        except:
             return Response({"error": "Invalid input"}, status=400)
 
         result = calculate_electricity_bill(
@@ -1214,11 +1217,9 @@ class ElectricityBillCalculateAPI(APIView):
             time_unit
         )
 
-        if not result:
-            return Response({"error": "Calculation failed"}, status=400)
-
+        # 🔹 Save in SQL
         obj = ELECTRICITYBILL_Calculator.objects.create(
-
+            user=request.user,
             calculator_type="Electricity Bill",
 
             power_consumption=power,
@@ -1230,13 +1231,25 @@ class ElectricityBillCalculateAPI(APIView):
             time_unit=time_unit,
 
             power_consumed=result["power_consumed"],
-            total_cost=result["total_cost"]
+            total_amount=result["total_amount"]
         )
 
+        # 🔹 Generate Card Specific ID
+        last = history_collection.find_one(
+            {"calculator_name": "Property & Utility \nElectricity Bill Calculator"},
+            sort=[("electricity_id", -1)]
+        )
+
+        electricity_id = 1 if not last else last["electricity_id"] + 1
+
+        # 🔹 Save History in MongoDB
         history_collection.insert_one({
 
+            "electricity_id": electricity_id,
+
             "custom_id": profile["custom_id"],
-            "calculator_name": " property & utility \nElectricity Bill Calculator",
+
+            "calculator_name": "Property & Utility \nElectricity Bill Calculator",
 
             "power_consumption": power,
             "power_unit": power_unit,
@@ -1247,14 +1260,19 @@ class ElectricityBillCalculateAPI(APIView):
             "time_unit": time_unit,
 
             "power_consumed": result["power_consumed"],
-            "total_cost": result["total_cost"],
+            "total_amount": result["total_amount"],
 
             "created_at": localtime(obj.created_at).isoformat()
         })
 
         return Response({
-            "message": " property & utility Electricity bill calculated successfully",
-            "result": result
+
+            "electricity_id": electricity_id,
+
+            "power_consumed": result["power_consumed"],
+
+            "total_amount": result["total_amount"]
+
         }, status=201)
 
 
@@ -1417,4 +1435,91 @@ class InsuranceEMICalculateAPI(APIView):
         return Response({
             "message": "Insurance EMI calculated & saved successfully",
             "result": result
+        }, status=201)
+    
+
+
+class InsuranceIRRCalculateAPI(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        profile = get_mongo_profile(request)
+
+        if not profile:
+            return Response({"error": "User profile not found"}, status=404)
+
+        data = request.data
+
+        try:
+            investment = float(data.get("initial_investment", 0))
+
+            cash_flows = data.get("cash_flows", [])
+
+            cash_flows = [float(x) for x in cash_flows]
+
+        except Exception:
+            return Response({"error": "Invalid input"}, status=400)
+
+        flows = [-investment] + cash_flows
+
+        irr = calculate_irr(flows)
+
+        if irr is None:
+            return Response({"error": "IRR could not be calculated"}, status=400)
+
+        # ✅ FIXED Net Profit / Loss
+        total_amount = sum(cash_flows) - investment
+
+        obj = INSURANCE_IRR_Calculator.objects.create(
+
+            user=request.user,
+
+            calculator_type="Insurance \nIRR Calculator",
+
+            initial_investment=investment,
+
+            cash_flows=cash_flows,
+
+            irr_result=round(irr, 2),
+
+            total_amount=total_amount
+        )
+
+        last = history_collection.find_one(
+            {"calculator_name": "Insurance \nIRR Calculator"},
+            sort=[("irr_id", -1)]
+        )
+
+        irr_id = 1 if not last else last["irr_id"] + 1
+
+        history_collection.insert_one({
+
+            "irr_id": irr_id,
+
+            "custom_id": profile["custom_id"],
+
+            "calculator_name": "Insurance \nIRR Calculator",
+
+            "initial_investment": investment,
+
+            "cash_flows": cash_flows,
+
+            "irr_result": round(irr, 2),
+
+            "total_amount": total_amount,
+
+            "created_at": localtime(obj.created_at).isoformat()
+
+        })
+
+        return Response({
+
+            "irr_id": irr_id,
+
+            "irr_result": round(irr, 2),
+
+            "total_amount": total_amount
+
         }, status=201)
