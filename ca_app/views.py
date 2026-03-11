@@ -70,7 +70,23 @@ def get_mongo_profile(request):
         raise Exception(f"MongoDB profile not found for {request.user.email}")
     return profile
 
+# =========================
+# Card ID Generator
+# =========================
 
+def generate_card_id():
+
+    last = history_collection.find_one(
+        {},
+        sort=[("card_id", -1)]
+    )
+
+    return 1 if not last else last.get("card_id", 0) + 1
+
+
+
+
+    
 
 
 @api_view(['POST'])
@@ -418,8 +434,9 @@ class GSTCalculateAPI(APIView):
             sgst_amount=result["sgst"],
             total_amount=result["total_amount"],
         )
-
+        card_id = generate_card_id()
         history_collection.insert_one({
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "CA \nGST Calculator",
             "amount": float(data.get("amount")),
@@ -436,6 +453,7 @@ class GSTCalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
             "message": "GST calculated & saved successfully",
             "result": result
         }, status=201)
@@ -508,9 +526,11 @@ class TDSCalculateAPI(APIView):
             tds_amount=result["tds_amount"],
             total_amount=result["total_amount"],
         )
+        card_id = generate_card_id()
 
        
         history_collection.insert_one({
+            "card_id": card_id,
             "custom_id": profile["custom_id"],  
             "calculator_name": "CA \nTDS Calculator",
             "amount": amount,
@@ -522,6 +542,7 @@ class TDSCalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
             "message": "TDS calculated & saved successfully",
             "custom_id": profile["custom_id"],
             "result": result
@@ -593,8 +614,10 @@ class EMICalculateAPI(APIView):
             total_interest=result["total_interest"],
             total_amount=result["total_amount"],
         )
+        card_id = generate_card_id()
 
         history_collection.insert_one({
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "CA \nEMI Calculator",
             "loan_amount": principal,
@@ -608,6 +631,7 @@ class EMICalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
             "message": "EMI calculated & saved successfully",
             "result": result
         }, status=201)
@@ -651,9 +675,11 @@ class BankingSWPCalculateAPI(APIView):
             total_withdrawn=result["total_withdrawn"],
             total_amount=result["total_amount"],
         )
+        card_id = generate_card_id()
 
    
         history_collection.insert_one({
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "Banking \nSWP Calculator",
             "invested_amount": invested_amount,
@@ -666,6 +692,7 @@ class BankingSWPCalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
             "message": "Banking SWP calculated & saved successfully",
             "custom_id": profile["custom_id"],
             "result": result
@@ -705,8 +732,10 @@ class FDCalculateAPI(APIView):
             estimated_return=result["estimated_return"],
             total_amount=result["total_amount"],
         )
+        card_id = generate_card_id()
 
         history_collection.insert_one({
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "Bankig \nFD Calculator",
             "invested_amount": invested_amount,
@@ -718,6 +747,7 @@ class FDCalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
             "message": "Banking FD calculated & saved successfully",
             "custom_id": profile["custom_id"],
             "result": result
@@ -782,10 +812,11 @@ class PPFCalculateAPI(APIView):
             estimated_return=result["estimated_return"],
             total_amount=result["total_amount"],
         )
+        card_id = generate_card_id()
 
         # 🔥 Save history in Mongo
         history_collection.insert_one({
-
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "Banking \nPPF Calculator",
 
@@ -802,6 +833,7 @@ class PPFCalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
 
             "status": True,
             "message": "Bankig PPF calculated successfully",
@@ -845,9 +877,11 @@ class SIPCalculateAPI(APIView):
             estimated_return=result["estimated_return"],
             total_amount=result["total_amount"],
         )
+        card_id = generate_card_id()
 
         # Save in MongoDB history
         history_collection.insert_one({
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "Banking \nSIP Calculator",
             "monthly_investment": round(monthly, 2),
@@ -860,6 +894,7 @@ class SIPCalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
             "message": "Banking SIP calculated & saved successfully",
             "result": result
         }, status=201)
@@ -902,8 +937,10 @@ class RDCalculateAPI(APIView):
             estimated_return=result["estimated_return"],
             total_amount=result["total_amount"],
         )
+        card_id = generate_card_id()
 
         history_collection.insert_one({
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "Banking \nRD Calculator",
             "monthly_investment": monthly_investment,
@@ -916,6 +953,7 @@ class RDCalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
             "message": "Banking RD calculated & saved successfully",
             "result": result
         }, status=201)
@@ -959,10 +997,11 @@ class BANKINGEMICalculateAPI(APIView):
             total_interest=result["total_interest"],
             total_amount=result["total_amount"],
         )
+        card_id = generate_card_id()
 
         # Save in MongoDB History
         history_collection.insert_one({
-
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "user_id": request.user.id,
 
@@ -982,6 +1021,7 @@ class BANKINGEMICalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
 
             "message": "EMI calculated & saved successfully",
             "data": result
@@ -1029,9 +1069,11 @@ class MaturityCalculateAPI(APIView):
             estimated_return=result["estimated_return"],
             total_amount=result["total_amount"],
         )
+        card_id = generate_card_id()
 
         # Save MongoDB history
         history_collection.insert_one({
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "Insurance Maturity Calculator",
             "total_investment": total_investment,
@@ -1044,6 +1086,7 @@ class MaturityCalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
             "message": "Insurance Maturity calculated & saved successfully",
             "result": result
         }, status=201)
@@ -1099,9 +1142,10 @@ class LandUnitCalculateAPI(APIView):
             total_amount=calculated_amount,
             price_per_unit=price_per_unit
         )
+        card_id = generate_card_id()
 
         history_collection.insert_one({
-
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "Property & Utility \nLand Unit Calculator",
 
@@ -1117,6 +1161,7 @@ class LandUnitCalculateAPI(APIView):
         return Response({
 
             "message": "Land Unit calculated successfully",
+            "card_id": card_id,
 
             "total_amount": calculated_amount,
             "price_per_unit": price_per_unit,
@@ -1160,8 +1205,10 @@ class PaintCostCalculateAPI(APIView):
 
         paint_needed = result["paint_needed"]
         total_amount = result["total_amount"]
+        card_id = generate_card_id()
 
         history_collection.insert_one({
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "Property & Utility \nPaint Cost Calculator ",
             "total_area": total_area,
@@ -1174,6 +1221,7 @@ class PaintCostCalculateAPI(APIView):
         })
 
         return Response({
+            "card_id": card_id,
             "paint_needed": paint_needed,
             "total_amount": total_amount
         })
@@ -1234,18 +1282,12 @@ class ElectricityBillCalculateAPI(APIView):
             total_amount=result["total_amount"]
         )
 
-        # 🔹 Generate Card Specific ID
-        last = history_collection.find_one(
-            {"calculator_name": "Property & Utility \nElectricity Bill Calculator"},
-            sort=[("electricity_id", -1)]
-        )
-
-        electricity_id = 1 if not last else last["electricity_id"] + 1
+        card_id = generate_card_id()
 
         # 🔹 Save History in MongoDB
         history_collection.insert_one({
 
-            "electricity_id": electricity_id,
+            "card_id": card_id,
 
             "custom_id": profile["custom_id"],
 
@@ -1267,7 +1309,7 @@ class ElectricityBillCalculateAPI(APIView):
 
         return Response({
 
-            "electricity_id": electricity_id,
+            "card_id": card_id,
 
             "power_consumed": result["power_consumed"],
 
@@ -1418,8 +1460,10 @@ class InsuranceEMICalculateAPI(APIView):
             total_interest=result["total_interest"],
             total_amount=result["total_amount"],
         )
+        card_id = generate_card_id()
 
         history_collection.insert_one({
+            "card_id": card_id,
             "custom_id": profile["custom_id"],
             "calculator_name": "Insurance EMI Calculator",
             "insurance_amount": insurance_amount,
@@ -1487,16 +1531,11 @@ class InsuranceIRRCalculateAPI(APIView):
             total_amount=total_amount
         )
 
-        last = history_collection.find_one(
-            {"calculator_name": "Insurance \nIRR Calculator"},
-            sort=[("irr_id", -1)]
-        )
-
-        irr_id = 1 if not last else last["irr_id"] + 1
+        card_id = generate_card_id()
 
         history_collection.insert_one({
 
-            "irr_id": irr_id,
+            "card_id": card_id,
 
             "custom_id": profile["custom_id"],
 
@@ -1516,7 +1555,7 @@ class InsuranceIRRCalculateAPI(APIView):
 
         return Response({
 
-            "irr_id": irr_id,
+            "card_id": card_id,
 
             "irr_result": round(irr, 2),
 
@@ -1677,16 +1716,10 @@ class XIRRCalculateAPI(APIView):
 
         # -------- GENERATE CARD ID --------
 
-        last = history_collection.find_one(
-            {"calculator_name": "XIRR Calculator"},
-            sort=[("xirr_id", -1)]
-        )
-
-        xirr_id = 1 if not last else last["xirr_id"] + 1
-
+        card_id = generate_card_id()
         history_collection.insert_one({
 
-            "xirr_id": xirr_id,
+            "card_id": card_id,
 
             "custom_id": profile["custom_id"],
 
@@ -1713,7 +1746,7 @@ class XIRRCalculateAPI(APIView):
 
         return Response({
 
-            "xirr_id": xirr_id,
+            "card_id": card_id,
             "total_amount": round(xirr_result, 2)
 
         }, status=201)
