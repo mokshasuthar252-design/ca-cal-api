@@ -19,6 +19,7 @@ from .views import (
     InsuranceEMICalculateAPI,
     InsuranceIRRCalculateAPI,
     XIRRCalculateAPI,
+    DeleteHistoryAPI,
     delete_account,
     register,
     send_login_otp,
@@ -67,6 +68,7 @@ urlpatterns = [
     path("history/share/<str:history_id>/", ShareHistoryAPI.as_view(), name='history-share'),
     path("insurance-emi/", InsuranceEMICalculateAPI.as_view(), name="insurance-emi"),
     path("irr/calculate/",InsuranceIRRCalculateAPI.as_view(),name="irr-calculate"),
-    path("xirr/calculate/",XIRRCalculateAPI.as_view(),name="xirr-calculate")
+    path("xirr/calculate/",XIRRCalculateAPI.as_view(),name="xirr-calculate"),
+    path("history/delete/<int:card_id>/",DeleteHistoryAPI.as_view(),name="delete-history"),
   
 ]

@@ -516,3 +516,6 @@ def calculate_xirr(flows):
         guess = new_guess
 
     return guess * 100
+
+
+

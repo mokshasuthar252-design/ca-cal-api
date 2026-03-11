@@ -184,9 +184,6 @@ class INSURANCE_MATURITY_Calculator(models.Model):
 
 
 
-from django.db import models
-from django.contrib.auth.models import User
-
 
 class LANDUNIT_Calculator(models.Model):
 
