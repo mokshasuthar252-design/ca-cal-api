@@ -305,3 +305,27 @@ class INSURANCE_IRR_Calculator(models.Model):
     total_amount = models.DecimalField(max_digits=15, decimal_places=2)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+
+class XIRR_Calculator(models.Model):
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    calculator_type = models.CharField(max_length=100)
+
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    maturity_date = models.DateTimeField()
+
+    investment = models.DecimalField(max_digits=15, decimal_places=2)
+
+    maturity_amount = models.DecimalField(max_digits=15, decimal_places=2)
+
+    frequency = models.CharField(max_length=50)
+
+    xirr_result = models.DecimalField(max_digits=10, decimal_places=2)
+
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2)
+
+    created_at = models.DateTimeField(auto_now_add=True)

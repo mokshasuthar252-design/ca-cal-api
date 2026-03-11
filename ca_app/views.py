@@ -41,14 +41,14 @@ from .models import (
     CA_GST_Calculator, CA_TDS_Calculator, CA_EMI_Calculator,
     BankingSWPCalculator, BANKING_SIP_Calculator,
     BANKING_FD_Calculator, BANKING_PPF_Calculator, BANKING_RD_Calculator,
-    INSURANCE_MATURITY_Calculator,LANDUNIT_Calculator,PAINTCOST_Calculator,ELECTRICITYBILL_Calculator,BANKING_EMI_Calculator,Insurance_EMI_Calculator,INSURANCE_IRR_Calculator
+    INSURANCE_MATURITY_Calculator,LANDUNIT_Calculator,PAINTCOST_Calculator,ELECTRICITYBILL_Calculator,BANKING_EMI_Calculator,Insurance_EMI_Calculator,INSURANCE_IRR_Calculator,XIRR_Calculator
 )
 
 from .utils import (
     generate_otp, calculate_gst, calculate_tds,
     calculate_emi_logic, calculate_banking_swp,
     calculate_sip, calculate_fd, calculate_ppf,calculate_maturity,
-    calculate_land_unit,calculate_paint_cost, calculate_electricity_bill, calculate_insurance_emi_logic,calculate_rd,calculate_irr,
+    calculate_land_unit,calculate_paint_cost, calculate_electricity_bill, calculate_insurance_emi_logic,calculate_rd,calculate_irr,calculate_xirr,
 )
 
 from .mongo import history_collection
@@ -1521,5 +1521,199 @@ class InsuranceIRRCalculateAPI(APIView):
             "irr_result": round(irr, 2),
 
             "total_amount": total_amount
+
+        }, status=201)
+    
+
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+
+
+class XIRRCalculateAPI(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        profile = get_mongo_profile(request)
+
+        if not profile:
+            return Response({"error": "User profile not found"}, status=404)
+
+        data = request.data
+
+        try:
+
+            start_date = datetime.fromisoformat(data.get("start_date"))
+            end_date = datetime.fromisoformat(data.get("end_date"))
+            maturity_date = datetime.fromisoformat(data.get("maturity_date"))
+
+            investment = float(data.get("investment"))
+            maturity_amount = float(data.get("maturity_amount"))
+
+            frequency = data.get("frequency")
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
+        # -------- CASH FLOW GENERATION --------
+
+        flows = []
+
+        # -------- ONE TIME --------
+        if frequency == "One Time":
+
+            flows.append({
+                "amount": -float(investment),
+                "date": start_date
+            })
+
+        # -------- 14 DAYS --------
+        elif frequency == "14 Days":
+
+            current = start_date
+
+            while current <= end_date:
+                flows.append({
+                    "amount": -float(investment),
+                    "date": current
+                })
+
+                current += timedelta(days=14)
+
+        # -------- MONTHLY --------
+        elif frequency == "Monthly":
+
+            current = start_date
+
+            while current <= end_date:
+                flows.append({
+                    "amount": -float(investment),
+                    "date": current
+                })
+
+                current += relativedelta(months=1)
+
+        # -------- QUARTERLY --------
+        elif frequency == "Quarterly":
+
+            current = start_date
+
+            while current <= end_date:
+                flows.append({
+                    "amount": -float(investment),
+                    "date": current
+                })
+
+                current += relativedelta(months=3)
+
+        # -------- HALF YEARLY --------
+        elif frequency == "Half Yearly":
+
+            current = start_date
+
+            while current <= end_date:
+                flows.append({
+                    "amount": -float(investment),
+                    "date": current
+                })
+
+                current += relativedelta(months=6)
+
+        # -------- YEARLY --------
+        elif frequency == "Yearly":
+
+            current = start_date
+
+            while current <= end_date:
+                flows.append({
+                    "amount": -float(investment),
+                    "date": current
+                })
+
+                current += relativedelta(years=1)
+
+        else:
+
+            flows.append({
+                "amount": -float(investment),
+                "date": start_date
+            })
+
+        # -------- MATURITY AMOUNT --------
+
+        flows.append({
+            "amount": float(maturity_amount),
+            "date": maturity_date
+        })
+
+        # -------- XIRR CALCULATION --------
+
+        xirr_result = calculate_xirr(flows)
+
+        total_investment = abs(sum(f["amount"] for f in flows if f["amount"] < 0))
+
+        total_amount = maturity_amount - total_investment
+
+        obj = XIRR_Calculator.objects.create(
+
+            user=request.user,
+
+            calculator_type="XIRR Calculator",
+
+            start_date=start_date,
+            end_date=end_date,
+            maturity_date=maturity_date,
+
+            investment=investment,
+            maturity_amount=maturity_amount,
+
+            frequency=frequency,
+
+            xirr_result=round(xirr_result, 2),
+
+            total_amount=total_amount
+        )
+
+        # -------- GENERATE CARD ID --------
+
+        last = history_collection.find_one(
+            {"calculator_name": "XIRR Calculator"},
+            sort=[("xirr_id", -1)]
+        )
+
+        xirr_id = 1 if not last else last["xirr_id"] + 1
+
+        history_collection.insert_one({
+
+            "xirr_id": xirr_id,
+
+            "custom_id": profile["custom_id"],
+
+            "calculator_name": "Insurance XIRR Calculator",
+
+            "start_date": str(start_date),
+            "end_date": str(end_date),
+            "maturity_date": str(maturity_date),
+
+            "investment": investment,
+            "maturity_amount": maturity_amount,
+
+            "frequency": frequency,
+
+            "xirr_result": round(xirr_result, 2),
+
+            "total_amount": total_amount,
+
+            "created_at": localtime(obj.created_at).isoformat()
+
+        })
+
+        # -------- RESPONSE --------
+
+        return Response({
+
+            "xirr_id": xirr_id,
+            "total_amount": round(xirr_result, 2)
 
         }, status=201)

@@ -482,7 +482,37 @@ def calculate_irr(cash_flows):
 
 
 
+def calculate_xirr(flows):
 
+    flows.sort(key=lambda x: x["date"])
 
+    first_date = flows[0]["date"]
 
+    guess = 0.1
 
+    for _ in range(100):
+
+        npv = 0.0
+        derivative = 0.0
+
+        for flow in flows:
+
+            days = (flow["date"] - first_date).days / 365.0
+
+            denom = math.pow(1 + guess, days)
+
+            npv += flow["amount"] / denom
+
+            derivative += -days * flow["amount"] / math.pow(1 + guess, days + 1)
+
+        if derivative == 0:
+            break
+
+        new_guess = guess - (npv / derivative)
+
+        if abs(new_guess - guess) < 0.0000001:
+            return new_guess * 100
+
+        guess = new_guess
+
+    return guess * 100
