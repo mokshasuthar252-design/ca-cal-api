@@ -247,6 +247,10 @@ def calculate_rd(monthly_investment, interest_rate, time_period_years):
     }
 
 
+
+
+
+
 def calculate_maturity(total_investment, rate_of_interest, time_period_years):
 
     if total_investment <= 0 or rate_of_interest <= 0 or time_period_years <= 0:
@@ -270,9 +274,9 @@ def calculate_maturity(total_investment, rate_of_interest, time_period_years):
 
 
 
-def calculate_land_unit(land_area, unit, total_cost):
+def calculate_land_unit(land_area, unit, amount, cost_type):
 
-    if land_area <= 0 or total_cost <= 0:
+    if land_area <= 0 or amount <= 0:
         return None
 
     conversion_to_sqm = {
@@ -293,50 +297,63 @@ def calculate_land_unit(land_area, unit, total_cost):
 
     area_in_sqm = land_area * conversion_to_sqm[unit]
 
-    price_per_sqm = total_cost / area_in_sqm
+    if cost_type == "total_cost":
+
+     price_per_sqm = amount / area_in_sqm
+     total_amount = amount
+
+    elif cost_type in ["per_unit", "per_unit_cost"]:
+
+     price_per_sqm = amount / conversion_to_sqm[unit]
+     total_amount = price_per_sqm * area_in_sqm
+
+    else:
+     return None
 
     result = {}
 
     for key, value in conversion_to_sqm.items():
         result[key] = round(price_per_sqm * value, 2)
 
-    return result
-
-
-
-
-
-def calculate_paint_cost(total_area, area_unit, efficiency, efficiency_unit, cost_per_liter):
-
-    if total_area <= 0 or efficiency <= 0 or cost_per_liter <= 0:
-        return None
-
-    conversion_to_sqm = {
-        "square_meter": 1,
-        "square_kilometer": 1000000,
-        "square_feet": 0.092903,
-        "square_miles": 2589988.11,
-        "square_yards": 0.836127,
-        "are": 100,
-        "decare": 1000,
-        "hectare": 10000,
-        "acre": 4046.86,
-        "soccer_field": 7140
+    return {
+        "per_unit_prices": result,
+        "total_amount": round(total_amount, 2)
     }
 
-    area_sqm = total_area * conversion_to_sqm.get(area_unit)
 
-    if efficiency_unit == "milliliter":
-        efficiency = efficiency / 1000
 
-    paint_needed = area_sqm / efficiency
 
-    total_cost = paint_needed * cost_per_liter
+
+
+
+
+import math
+
+def calculate_paint_cost(total_area, area_unit, efficiency, cost_per_liter):
+
+    area_unit = area_unit.lower().replace(" ", "_")
+
+    conversion_to_sqft = {
+        "square_feet": 1,
+        "square_meter": 10.7639,
+        "square_yards": 9
+    }
+
+    area_sqft = total_area * conversion_to_sqft.get(area_unit, 1)
+
+    paint_needed = area_sqft / efficiency
+
+    paint_needed = math.ceil(paint_needed)
+
+    total_amount = paint_needed * cost_per_liter
 
     return {
-        "paint_needed": round(paint_needed, 2),
-        "total_cost": round(total_cost, 2)
+        "paint_needed": paint_needed,
+        "total_amount": total_amount
     }
+
+
+
 
 
 

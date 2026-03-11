@@ -1050,7 +1050,12 @@ class MaturityCalculateAPI(APIView):
 
 
 
+
+
+
+
 class LandUnitCalculateAPI(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -1063,38 +1068,46 @@ class LandUnitCalculateAPI(APIView):
         data = request.data
 
         try:
-            land_area = float(data.get("land_area", 0))
+            land_area = float(data.get("area", 0))
             unit = data.get("unit")
-            total_cost = float(data.get("total_cost", 0))
+            amount = float(data.get("cost", 0))
+            cost_type = data.get("cost_type")
         except ValueError:
             return Response({"error": "Invalid input"}, status=400)
 
-        result = calculate_land_unit(land_area, unit, total_cost)
+        # normalize values
+        unit = unit.strip().lower().replace(" ", "_")
+        cost_type = cost_type.strip().lower().replace(" ", "_")
+
+        result = calculate_land_unit(land_area, unit, amount, cost_type)
 
         if not result:
             return Response({"error": "Calculation failed"}, status=400)
 
-        price_per_unit = result.get(unit)
+        price_per_unit = result["per_unit_prices"].get(unit)
+        calculated_amount = result["total_amount"]
 
         obj = LANDUNIT_Calculator.objects.create(
 
+            user=request.user,
             calculator_type="Land Unit",
 
             land_area=land_area,
             unit=unit,
-            total_cost=total_cost,
+
+            total_amount=calculated_amount,
             price_per_unit=price_per_unit
         )
 
         history_collection.insert_one({
 
             "custom_id": profile["custom_id"],
-            "calculator_name": "property & utility \nLand Unit Calculator",
+            "calculator_name": "Property & Utility \nLand Unit Calculator",
 
             "land_area": land_area,
             "unit": unit,
-            "total_cost": total_cost,
 
+            "total_amount": calculated_amount,
             "price_per_unit": price_per_unit,
 
             "created_at": localtime(obj.created_at).isoformat()
@@ -1102,19 +1115,27 @@ class LandUnitCalculateAPI(APIView):
 
         return Response({
 
-            "message": " property & utility Land Unit calculated successfully",
+            "message": "Land Unit calculated successfully",
 
-            "selected_unit_price": price_per_unit,
+            "total_amount": calculated_amount,
+            "price_per_unit": price_per_unit,
 
-            "result": result
+            "result": result["per_unit_prices"]
 
         }, status=201)
-    
+
+
+        
+
+
+
+
+
+
+from django.utils.timezone import localtime, now
 
 
 class PaintCostCalculateAPI(APIView):
-
-    permission_classes = [IsAuthenticated]
 
     def post(self, request):
 
@@ -1123,70 +1144,41 @@ class PaintCostCalculateAPI(APIView):
         if not profile:
             return Response({"error": "User profile not found"}, status=404)
 
-        data = request.data
+        total_area = float(request.data.get("total_area", 0))
+        area_unit = request.data.get("area_type")
 
-        try:
-            total_area = float(data.get("total_area", 0))
-            area_unit = data.get("area_unit")
-
-            efficiency = float(data.get("paint_efficiency", 0))
-            efficiency_unit = data.get("efficiency_unit")
-
-            cost_per_liter = float(data.get("cost_per_liter", 0))
-
-        except ValueError:
-            return Response({"error": "Invalid input"}, status=400)
+        paint_efficiency = float(request.data.get("paint_efficiency", 0))
+        cost_per_liter = float(request.data.get("cost_per_unit", 0))
 
         result = calculate_paint_cost(
             total_area,
             area_unit,
-            efficiency,
-            efficiency_unit,
+            paint_efficiency,
             cost_per_liter
         )
 
-        if not result:
-            return Response({"error": "Calculation failed"}, status=400)
-
-        obj = PAINTCOST_Calculator.objects.create(
-
-            calculator_type="Paint Cost",
-
-            total_area=total_area,
-            area_unit=area_unit,
-
-            paint_efficiency=efficiency,
-            efficiency_unit=efficiency_unit,
-
-            cost_per_liter=cost_per_liter,
-
-            paint_needed=result["paint_needed"],
-            total_cost=result["total_cost"]
-        )
+        paint_needed = result["paint_needed"]
+        total_amount = result["total_amount"]
 
         history_collection.insert_one({
-
             "custom_id": profile["custom_id"],
-            "calculator_name": " property & utility \nPaint Cost Calculator",
-
+            "calculator_name": "Property & Utility \nPaint Cost Calculator ",
             "total_area": total_area,
             "area_unit": area_unit,
-
-            "paint_efficiency": efficiency,
-            "efficiency_unit": efficiency_unit,
-
+            "paint_efficiency": paint_efficiency,
             "cost_per_liter": cost_per_liter,
-
-            "paint_needed": result["paint_needed"],
-            "total_cost": result["total_cost"],
-
-            "created_at": localtime(obj.created_at).isoformat()
+            "paint_needed": paint_needed,
+            "total_amount": total_amount,
+            "created_at": localtime(now()).isoformat()
         })
 
         return Response({
-            "message": " property & utility Paint cost calculated successfully",
-            "result": result
-        }, status=201)
+            "paint_needed": paint_needed,
+            "total_amount": total_amount
+        })
+
+
+
 
 
 class ElectricityBillCalculateAPI(APIView):
