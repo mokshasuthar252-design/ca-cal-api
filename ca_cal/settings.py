@@ -34,8 +34,8 @@ EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = "smartcalctechmayntra715@gmail.com"
-EMAIL_HOST_PASSWORD = "xece mbql cnxd jkvb"
+EMAIL_HOST_USER = os.environ.get("smartcalctechmayntra715@gmail.com")
+EMAIL_HOST_PASSWORD = os.environ.get("xece mbql cnxd jkvb")
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
