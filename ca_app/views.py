@@ -50,7 +50,9 @@ from .utils import (
     calculate_sip, calculate_fd, calculate_ppf,calculate_maturity,
     calculate_land_unit,calculate_paint_cost, calculate_electricity_bill, calculate_insurance_emi_logic,calculate_rd,calculate_irr,calculate_xirr,
 )
+from django.conf import settings
 
+from_email = settings.EMAIL_HOST_USER
 from .mongo import history_collection
 from .mongo import user_collection
 from .utils import generate_custom_id
@@ -172,7 +174,7 @@ def send_login_otp(request):
     )
 
     subject = "🔐 Your Secure Login OTP"
-    from_email = "your@email.com"
+    from_email = settings.EMAIL_HOST_USER
     to = [email]
 
     html_content = f"""
@@ -1737,7 +1739,7 @@ class XIRRCalculateAPI(APIView):
 
         })
 
-        
+        # -------- RESPONSE --------
 
         return Response({
 
