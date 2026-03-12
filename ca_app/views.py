@@ -70,9 +70,7 @@ def get_mongo_profile(request):
         raise Exception(f"MongoDB profile not found for {request.user.email}")
     return profile
 
-# =========================
-# Card ID Generator
-# =========================
+
 
 def generate_card_id(custom_id):
 
@@ -81,11 +79,10 @@ def generate_card_id(custom_id):
         sort=[("card_id", -1)]
     )
 
-    if not last:
+    if last is None:
         return 1
 
-    return last["card_id"] + 1
-
+    return int(last["card_id"]) + 1
 
     
 
@@ -103,14 +100,14 @@ def register(request):
             "message": "All fields are required"
         }, status=400)
 
-    # 🔐 Email must be unique
+    
     if User.objects.filter(username=email).exists():
         return Response({
             "status": False,
             "message": "This email was registered. Please try another."
         }, status=409)
 
-    # Create Django user
+    
     user = User.objects.create_user(
         username=email,
         email=email
@@ -119,13 +116,13 @@ def register(request):
     user.set_unusable_password()
     user.save()
 
-    # Mobile duplicate allowed
+
     Profile.objects.create(
         user=user,
         mobile=mobile
     )
 
-    # MongoDB entry
+  
     custom_id, serial = generate_custom_id(name, user_collection)
 
     user_collection.insert_one({
@@ -164,7 +161,7 @@ def send_login_otp(request):
             "message": "This email is not registered. Please register first."
         }, status=404)
 
-    # Delete old OTP
+   
     EmailOTP.objects.filter(user=user).delete()
 
     otp = generate_otp()
@@ -324,24 +321,24 @@ def verify_login_otp(request):
             "message": "OTP expired"
         }, status=400)
 
-    # Wrong OTP
+  
     if otp_obj.otp != otp:
         return Response({
             "status": False,
             "message": "Invalid OTP"
         }, status=400)
 
-    # OTP correct
+   
     otp_obj.delete()
 
     token, _ = Token.objects.get_or_create(user=user)
 
-    # MongoDB માંથી phone fetch
+  
     mongo_user = user_collection.find_one({"email": email})
 
     phone = None
     if mongo_user:
-        phone = mongo_user.get("mobile")   # database માં mobile હોય તો
+        phone = mongo_user.get("mobile")  
 
     return Response({
         "status": True,
@@ -376,15 +373,14 @@ def delete_account(request):
     user = request.user
     email = user.email
 
-    # MongoDB માંથી delete
+  
     user_collection.delete_one({
         "email": email
     })
 
-    # Django Token delete
     Token.objects.filter(user=user).delete()
 
-    # Django User delete
+   
     user.delete()
 
     return Response({
@@ -793,7 +789,7 @@ class PPFCalculateAPI(APIView):
                 "message": "Invalid frequency"
             }, status=400)
 
-        # 🔥 Calculate PPF
+    
         result = calculate_ppf(total_investment, return_rate, time_in_years, frequency)
 
         if not result:
@@ -802,7 +798,6 @@ class PPFCalculateAPI(APIView):
                 "message": "Calculation failed"
             }, status=400)
 
-        # 🔥 Save in SQL DB
         obj = BANKING_PPF_Calculator.objects.create(
             user=request.user,
             total_investment=total_investment,
@@ -815,7 +810,6 @@ class PPFCalculateAPI(APIView):
         )
         card_id = generate_card_id(profile["custom_id"])
 
-        # 🔥 Save history in Mongo
         history_collection.insert_one({
             "card_id": card_id,
             "custom_id": profile["custom_id"],
@@ -869,7 +863,7 @@ class SIPCalculateAPI(APIView):
         if not result:
             return Response({"error": "Invalid input"}, status=400)
 
-        # Save in Django SQL DB
+       
         obj = BANKING_SIP_Calculator.objects.create(
             monthly_investment=monthly,
             annual_rate=rate,
@@ -880,7 +874,7 @@ class SIPCalculateAPI(APIView):
         )
         card_id = generate_card_id(profile["custom_id"])
 
-        # Save in MongoDB history
+       
         history_collection.insert_one({
             "card_id": card_id,
             "custom_id": profile["custom_id"],
@@ -1000,7 +994,7 @@ class BANKINGEMICalculateAPI(APIView):
         )
         card_id = generate_card_id(profile["custom_id"])
 
-        # Save in MongoDB History
+        
         history_collection.insert_one({
             "card_id": card_id,
             "custom_id": profile["custom_id"],
@@ -1072,7 +1066,7 @@ class MaturityCalculateAPI(APIView):
         )
         card_id = generate_card_id(profile["custom_id"])
 
-        # Save MongoDB history
+        
         history_collection.insert_one({
             "card_id": card_id,
             "custom_id": profile["custom_id"],
@@ -1266,7 +1260,7 @@ class ElectricityBillCalculateAPI(APIView):
             time_unit
         )
 
-        # 🔹 Save in SQL
+        
         obj = ELECTRICITYBILL_Calculator.objects.create(
             user=request.user,
             calculator_type="Electricity Bill",
@@ -1285,7 +1279,7 @@ class ElectricityBillCalculateAPI(APIView):
 
         card_id = generate_card_id(profile["custom_id"])
 
-        # 🔹 Save History in MongoDB
+        
         history_collection.insert_one({
 
             "card_id": card_id,
@@ -1339,7 +1333,7 @@ class CalculatorHistoryAPI(APIView):
 
         custom_id = profile["custom_id"]
 
-        # 🔥 Only logged-in user history
+        
         history = list(history_collection.find(
             {"custom_id": custom_id},
             {"_id": 0}
@@ -1514,7 +1508,7 @@ class InsuranceIRRCalculateAPI(APIView):
         if irr is None:
             return Response({"error": "IRR could not be calculated"}, status=400)
 
-        # ✅ FIXED Net Profit / Loss
+        
         total_amount = sum(cash_flows) - investment
 
         obj = INSURANCE_IRR_Calculator.objects.create(
@@ -1596,11 +1590,11 @@ class XIRRCalculateAPI(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 
-        # -------- CASH FLOW GENERATION --------
+       
 
         flows = []
 
-        # -------- ONE TIME --------
+        
         if frequency == "One Time":
 
             flows.append({
@@ -1608,7 +1602,7 @@ class XIRRCalculateAPI(APIView):
                 "date": start_date
             })
 
-        # -------- 14 DAYS --------
+        
         elif frequency == "14 Days":
 
             current = start_date
@@ -1621,7 +1615,7 @@ class XIRRCalculateAPI(APIView):
 
                 current += timedelta(days=14)
 
-        # -------- MONTHLY --------
+       
         elif frequency == "Monthly":
 
             current = start_date
@@ -1634,7 +1628,7 @@ class XIRRCalculateAPI(APIView):
 
                 current += relativedelta(months=1)
 
-        # -------- QUARTERLY --------
+        
         elif frequency == "Quarterly":
 
             current = start_date
@@ -1647,7 +1641,7 @@ class XIRRCalculateAPI(APIView):
 
                 current += relativedelta(months=3)
 
-        # -------- HALF YEARLY --------
+        
         elif frequency == "Half Yearly":
 
             current = start_date
@@ -1660,7 +1654,7 @@ class XIRRCalculateAPI(APIView):
 
                 current += relativedelta(months=6)
 
-        # -------- YEARLY --------
+       
         elif frequency == "Yearly":
 
             current = start_date
@@ -1680,14 +1674,14 @@ class XIRRCalculateAPI(APIView):
                 "date": start_date
             })
 
-        # -------- MATURITY AMOUNT --------
+       
 
         flows.append({
             "amount": float(maturity_amount),
             "date": maturity_date
         })
 
-        # -------- XIRR CALCULATION --------
+        
 
         xirr_result = calculate_xirr(flows)
 
@@ -1715,7 +1709,7 @@ class XIRRCalculateAPI(APIView):
             total_amount=total_amount
         )
 
-        # -------- GENERATE CARD ID --------
+        
 
         card_id = generate_card_id(profile["custom_id"])
         history_collection.insert_one({
@@ -1743,7 +1737,7 @@ class XIRRCalculateAPI(APIView):
 
         })
 
-        # -------- RESPONSE --------
+        
 
         return Response({
 
