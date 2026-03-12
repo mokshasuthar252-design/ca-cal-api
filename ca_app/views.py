@@ -142,11 +142,14 @@ def register(request):
     }, status=201)
 
 
+
 from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def send_login_otp(request):
+
     email = request.data.get("email")
 
     if not email:
@@ -163,7 +166,6 @@ def send_login_otp(request):
             "message": "This email is not registered. Please register first."
         }, status=404)
 
-   
     EmailOTP.objects.filter(user=user).delete()
 
     otp = generate_otp()
@@ -177,110 +179,25 @@ def send_login_otp(request):
     from_email = settings.EMAIL_HOST_USER
     to = [email]
 
-    html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-
-<body style="margin:0; padding:0; background-color:#0f172a; font-family:Arial, sans-serif;">
-
-<table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 10px;">
-<tr>
-<td align="center">
-
-<!-- Main Card -->
-<table width="100%" cellpadding="0" cellspacing="0"
-       style="max-width:480px; background:#1e293b; border-radius:14px; padding:35px 25px;">
-
-<!-- Header -->
-<tr>
-<td align="center" style="padding-bottom:20px;">
-<h2 style="color:#ffffff; margin:0; font-size:22px;">
-🔐 Secure Login Verification
-</h2>
-</td>
-</tr>
-
-<!-- Greeting -->
-<tr>
-<td align="center" style="color:#cbd5e1; font-size:15px; padding-bottom:15px;">
-Hello <strong>{user.first_name}</strong>,
-</td>
-</tr>
-
-<!-- Message -->
-<tr>
-<td align="center" style="color:#94a3b8; font-size:14px; padding-bottom:25px; line-height:20px;">
-Use the One-Time Password (OTP) below to securely access your account.<br>
-This code will expire in <strong style="color:#f87171;">90 seconds</strong>.
-</td>
-</tr>
-
-<!-- OTP BOX -->
-<tr>
-<td align="center" style="padding-bottom:30px;">
-<div style="
-display:inline-block;
-background:linear-gradient(90deg,#2563eb,#3b82f6);
-color:#ffffff;
-font-size:34px;
-font-weight:bold;
-letter-spacing:8px;
-padding:16px 34px;
-border-radius:10px;
-white-space:nowrap;
-font-family:monospace;
-box-shadow:0 6px 20px rgba(37,99,235,0.4);
-">
-{otp}
-</div>
-</td>
-</tr>
-
-<!-- Warning -->
-<tr>
-<td align="center" style="color:#94a3b8; font-size:13px; line-height:18px;">
-If you did not request this login attempt,<br>
-please ignore this email or secure your account immediately.
-</td>
-</tr>
-
-<!-- Divider -->
-<tr>
-<td align="center" style="padding-top:30px;">
-<hr style="border:none; border-top:1px solid #334155;">
-</td>
-</tr>
-
-<!-- Footer -->
-<tr>
-<td align="center" style="padding-top:15px; color:#64748b; font-size:12px;">
-© 2026 Your Company Name<br>
-All rights reserved.
-</td>
-</tr>
-
-</table>
-<!-- End Card -->
-
-</td>
-</tr>
-</table>
-
-</body>
-</html>
-"""
+    html_content = f"<h1>Your OTP is {otp}</h1>"
 
     email_message = EmailMultiAlternatives(subject, "", from_email, to)
     email_message.attach_alternative(html_content, "text/html")
-    email_message.send()
 
-    return Response({
-        "status": True,
-        "message": "OTP sent successfully"
-    })
+    try:
+        email_message.send()
+
+        return Response({
+            "status": True,
+            "message": "OTP sent successfully"
+        })
+
+    except Exception as e:
+        return Response({
+            "status": False,
+            "message": "Email failed",
+            "error": str(e)
+        }, status=500)
 
 
 
