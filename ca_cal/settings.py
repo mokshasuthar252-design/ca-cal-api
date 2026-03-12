@@ -33,7 +33,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'mokshasuthar252@gmail.com'           # Your Gmail
-EMAIL_HOST_PASSWORD = 'pcwvzodifzwqsqx'          # Gmail App Password
+EMAIL_HOST_PASSWORD = 'vrboxtzzsififuoe'          # Gmail App Password
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
